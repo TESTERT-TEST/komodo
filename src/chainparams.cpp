@@ -165,84 +165,15 @@ public:
         genesis.vtx.push_back(txNew);
         genesis.hashPrevBlock.SetNull();
         genesis.hashMerkleRoot = genesis.BuildMerkleTree();
-        
-        CBlock copy = genesis;
-        CBlock *pblock = &copy;
-        pblock->nNonce = ArithToUint256(0);
-        pblock->nTime = 1710602456;
-        // Hash state
+        genesis.nVersion = 1;
+        genesis.nTime    = 1710602456;
+        genesis.nBits    = KOMODO_MINDIFF_NBITS;
+        genesis.nNonce   = uint256S("0x0000000000000000000000000000000000000000000000000000000000000004");
+        genesis.nSolution = ParseHex("00b6473b4389666f411a7e484141b98d5d6188d0ea6fea413b50978d585a79a1b3effd839e9564912fa5a00e235acfe221982fb265dd3e29a2b374318bc0752b3d935e13718b9d57d5841b45e4d97565591214b23d78b6e57dc39f4a8eeb1085cbaf29ab0254444f9728c1732df3e5913370914a597df98e66df3efaca2a13efe23d7edb92296f72f68962a79de5553294a1e788bd7812950677bc79ce6fb45e6fb8f9c7f35750e2a2807919bb19852957134eb1c5d34be09a2e83d2b576a2258a621aee0be34481092c008f65ab9955c4eea18243432473479da54eed73f47c301de3e6f52cb05fc0c2f6913773834f22da39917a78c76b15ca2389f52f66fb12f1c94de6e7b276b8f4dfd2e6ba15f9e1e579377fa863f231a70d9a16b329871d675c15216214788196b45f0d047a3aaf0f10052bace31e2a46179533cff7929701eaa6e0309b2775b2d88fb785d072abc3b87143d0a8859a9a68cfa2ae19be5d315213cc03a0b38c6214acc4730923113c4c1ff1ac9621f4fcdb817420653c7d6826858a555731ea0d8eece8f23db1");
 
-        int n = 192;
-        int k = 7;
-
-        crypto_generichash_blake2b_state eh_state;
-        EhInitialiseState(n, k, eh_state);
-
-        // I = the block header minus nonce and solution.
-        CEquihashInput I{*pblock};
-        CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-        ss << I;
-
-        // H(I||...
-        crypto_generichash_blake2b_update(&eh_state, (unsigned char*)&ss[0], ss.size());
-
-        Consensus::Params consensus_ = consensus;
-
-        while (true) {
-            // Yes, there is a chance every nonce could fail to satisfy the -regtest
-            // target -- 1 in 2^(2^256). That ain't gonna happen
-
-            CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-            ss << pblock->nNonce;
-            printf("nonce=%s\n", pblock->nNonce.GetHex().c_str());
-
-            // H(I||V||...
-            crypto_generichash_blake2b_state curr_state;
-            curr_state = eh_state;
-            crypto_generichash_blake2b_update(&curr_state,
-                                              pblock->nNonce.begin(),
-                                              pblock->nNonce.size());
-
-            std::function<bool(std::vector<unsigned char>)> validBlock =
-                    [&pblock, &consensus_](std::vector<unsigned char> soln) {
-                pblock->nSolution = soln;
-
-                bool fNegative;
-                bool fOverflow;
-                arith_uint256 bnTarget;
-
-                bnTarget.SetCompact(pblock->nBits, &fNegative, &fOverflow);
-
-                // Check range
-                if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(consensus_.powLimit))
-                    return error("CheckProofOfWork(): nBits below minimum work");
-
-                // Check proof of work matches claimed amount
-                if (UintToArith256(pblock->GetHash()) > bnTarget)
-                    return error("CheckProofOfWork(): hash doesn't match nBits");
-
-                return true;
-
-            };
-
-            std::function<bool(EhSolverCancelCheck)> cancelled = [](EhSolverCancelCheck pos) {
-                return false;
-            };
-
-            bool found = EhOptimisedSolve(n, k, curr_state, validBlock, cancelled);
-            if (found) {
-                CDataStream ss(SER_NETWORK, PROTOCOL_VERSION);
-                ss << pblock->GetBlockHeader();
-                printf("header=%s\n", HexStr(ss.begin(), ss.end()).c_str());
-                printf("sol=%s\n", HexStr(ss.begin()+143, ss.end()).c_str());
-                printf("hash=%s\n", pblock->GetHash().GetHex().c_str());
-                printf("nonce=%s\n", pblock->nNonce.GetHex().c_str());
-                abort();
-            }
-
-            pblock->nNonce = ArithToUint256(UintToArith256(pblock->nNonce) + 1);
-        }
-
+        consensus.hashGenesisBlock = genesis.GetHash();
+        assert(consensus.hashGenesisBlock == uint256S("0x075c76f95f81403402e4cd6c2f6ceefdb8bd7a83661a09c636b22378f49c2931"));
+        assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
 
         vFixedSeeds.clear();
         vSeeds.clear();
