@@ -9,7 +9,6 @@ on:
     - beta
     - dev
     - research
-    - master
 
 jobs:
 
