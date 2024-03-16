@@ -899,7 +899,7 @@ template bool Equihash<192,7>::OptimisedSolve(const eh_HashState& base_state,
                                              const std::function<bool(const std::vector<unsigned char>&)> validBlock,
                                              const std::function<bool(EhSolverCancelCheck)> cancelled);
 #endif
-template bool Equihash<144,5>::IsValidSolution(const eh_HashState& base_state, std::vector<unsigned char> soln);
+template bool Equihash<192,7>::IsValidSolution(const eh_HashState& base_state, std::vector<unsigned char> soln);
 
 // Explicit instantiations for Equihash<96,5>
 template int Equihash<ASSETCHAINS_N,ASSETCHAINS_K>::InitialiseState(eh_HashState& base_state);
